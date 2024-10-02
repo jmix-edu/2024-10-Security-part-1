@@ -1,0 +1,1 @@
+This project is prepared to be used in the first part of "Jmix Access control subsystem" training
