@@ -1,26 +1,45 @@
 package com.company.jmixpm.app;
 
 import com.company.jmixpm.entity.User;
+import io.jmix.core.UnconstrainedDataManager;
 import io.jmix.email.EmailException;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class RegistrationService {
 
+    private final UnconstrainedDataManager unconstrainedDataManager;
+
+    public RegistrationService(UnconstrainedDataManager unconstrainedDataManager) {
+        this.unconstrainedDataManager = unconstrainedDataManager;
+    }
+
     /**
      * @return true if user with this email (or login) already exists.
      */
     public boolean checkUserAlreadyExist(String email) {
-        // todo check that user already exists
-        return false;
+        List<User> users = unconstrainedDataManager.load(User.class).query("select u from User u where u.email = :email " +
+                        "or u.username = :email")
+                .parameter("email", email)
+                .list();
+        return !users.isEmpty();
     }
 
     public User registerNewUser(String email, String firstName, String lastName) {
-        // todo register new user
-        return null;
+        User user = unconstrainedDataManager.create(User.class);
+        user.setUsername(email);
+        user.setEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setActive(false);
+        user.setNeedsActivation(true);
+
+        user = unconstrainedDataManager.save(user);
+        return user;
     }
 
     public String generateRandomActivationToken() {
@@ -39,7 +58,13 @@ public class RegistrationService {
     }
 
     public void saveActivationToken(User user, String activationToken) {
-        // todo save user activation token
+        user = unconstrainedDataManager.load(User.class)
+                .id(user.getId())
+                .one();
+
+        user.setActivationToken(activationToken);
+
+        unconstrainedDataManager.save(user);
     }
 
     public void sendActivationEmail(User user) throws EmailException {

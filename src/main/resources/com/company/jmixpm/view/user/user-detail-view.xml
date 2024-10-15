@@ -32,6 +32,8 @@
             <textField id="emailField" property="email"/>
             <comboBox id="timeZoneField" property="timeZoneId"/>
             <checkbox id="activeField" property="active"/>
+            <checkbox id="needsActivationField" property="needsActivation"/>
+            <textField id="activationTokenField" property="activationToken"/>
         </formLayout>
         <hbox id="detailActions">
             <button id="saveAndCloseBtn" action="saveAction"/>

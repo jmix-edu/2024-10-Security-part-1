@@ -37,7 +37,7 @@ public class MyNotificationsView extends StandardView {
         // set isRead
         item.setIsRead(true);
         // save changes
-        dataManager.save(item);
+        dataManager.unconstrained().save(item);
 
         // reload the table
         notificationsDl.load();

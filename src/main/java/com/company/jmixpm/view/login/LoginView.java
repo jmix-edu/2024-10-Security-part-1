@@ -1,6 +1,8 @@
 package com.company.jmixpm.view.login;
 
+import com.company.jmixpm.view.public_.register.UserRegistrationView;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.login.AbstractLogin;
 import com.vaadin.flow.component.login.AbstractLogin.LoginEvent;
 import com.vaadin.flow.component.login.LoginI18n;
 import com.vaadin.flow.i18n.LocaleChangeEvent;
@@ -10,6 +12,7 @@ import com.vaadin.flow.server.VaadinSession;
 import io.jmix.core.CoreProperties;
 import io.jmix.core.MessageTools;
 import io.jmix.core.security.AccessDeniedException;
+import io.jmix.flowui.ViewNavigators;
 import io.jmix.flowui.component.loginform.JmixLoginForm;
 import io.jmix.flowui.kit.component.ComponentUtils;
 import io.jmix.flowui.kit.component.loginform.JmixLoginI18n;
@@ -35,7 +38,6 @@ import java.util.stream.Collectors;
 @ViewDescriptor("login-view.xml")
 public class LoginView extends StandardView implements LocaleChangeObserver {
     private static final Logger log = LoggerFactory.getLogger(LoginView.class);
-
     @Autowired
     protected CoreProperties coreProperties;
 
@@ -56,6 +58,15 @@ public class LoginView extends StandardView implements LocaleChangeObserver {
 
     @Value("${ui.login.defaultPassword:}")
     private String defaultPassword;
+    @Autowired
+    private ViewNavigators viewNavigators;
+
+
+    @Subscribe("login")
+    public void onLoginForgotPassword(final AbstractLogin.ForgotPasswordEvent event) {
+        viewNavigators.view(this, UserRegistrationView.class)
+                .navigate();
+    }
 
     @Subscribe
     public void onInit(final InitEvent event) {
