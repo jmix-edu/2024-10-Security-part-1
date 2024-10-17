@@ -1,9 +1,16 @@
 package com.company.jmixpm.app;
 
 import com.company.jmixpm.entity.User;
+import com.company.jmixpm.security.DeveloperRole;
+import com.company.jmixpm.security.DeveloperRowLevelRole;
 import io.jmix.core.UnconstrainedDataManager;
 import io.jmix.email.EmailException;
+import io.jmix.email.EmailInfoBuilder;
+import io.jmix.email.Emailer;
+import io.jmix.security.role.assignment.RoleAssignmentRoleType;
+import io.jmix.securitydata.entity.RoleAssignmentEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,9 +20,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class RegistrationService {
 
     private final UnconstrainedDataManager unconstrainedDataManager;
+    private final Emailer emailer;
+    private final PasswordEncoder passwordEncoder;
 
-    public RegistrationService(UnconstrainedDataManager unconstrainedDataManager) {
+    public RegistrationService(UnconstrainedDataManager unconstrainedDataManager, Emailer emailer, PasswordEncoder passwordEncoder) {
         this.unconstrainedDataManager = unconstrainedDataManager;
+        this.emailer = emailer;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -68,18 +79,56 @@ public class RegistrationService {
     }
 
     public void sendActivationEmail(User user) throws EmailException {
-        // todo send activation email
+        user = unconstrainedDataManager.load(User.class)
+                .id(user.getId())
+                .one();
+
+        String activationLink = "http://localhost:8080/activate?token=" +
+                user.getActivationToken();
+
+        String subject = "Jmix PM registration";
+        String body = String.format("Hello, %s %s \n Please finish your Registration \n Activation link: %s",
+                user.getFirstName(),
+                user.getLastName(),
+                activationLink);
+
+        emailer.sendEmail(
+                EmailInfoBuilder.create()
+                        .setFrom("jmixpm@example.com")
+                        .setAddresses(user.getEmail())
+                        .setSubject(subject)
+                        .setBody(body)
+                        .build()
+        );
     }
 
     @Nullable
     public User loadUserByActivationToken(String token) {
-        // todo load user by activation token
-        return null;
+        User user = unconstrainedDataManager.load(User.class)
+                .query("select u from User u where u.needsActivation = true and u.activationToken = :token")
+                .parameter("token", token)
+                .optional()
+                .orElse(null);
+        return user;
     }
 
     public void activateUser(User user, String password) {
-        // todo activate user
-        // todo set password
-        // todo assign roles
+        String encodedPassword = passwordEncoder.encode(password);
+        user.setPassword(encodedPassword);
+        user.setActivationToken(null);
+        user.setNeedsActivation(false);
+        user.setActive(true);
+
+        RoleAssignmentEntity assignment1 = unconstrainedDataManager.create(RoleAssignmentEntity.class);
+        assignment1.setUsername(user.getUsername());
+        assignment1.setRoleCode(DeveloperRole.CODE);
+        assignment1.setRoleType(RoleAssignmentRoleType.RESOURCE);
+
+        RoleAssignmentEntity assignment2 = unconstrainedDataManager.create(RoleAssignmentEntity.class);
+        assignment2.setUsername(user.getUsername());
+        assignment2.setRoleCode(DeveloperRowLevelRole.CODE);
+        assignment2.setRoleType(RoleAssignmentRoleType.ROW_LEVEL);
+
+        unconstrainedDataManager.save(user, assignment1, assignment2);
     }
 }

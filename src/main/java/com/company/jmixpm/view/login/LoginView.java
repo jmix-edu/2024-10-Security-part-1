@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -102,11 +103,21 @@ public class LoginView extends StandardView implements LocaleChangeObserver {
                             .withLocale(login.getSelectedLocale())
                             .withRememberMe(login.isRememberMe())
             );
-        } catch (final BadCredentialsException | DisabledException | LockedException | AccessDeniedException e) {
+        } catch (final BadCredentialsException | DisabledException | LockedException | AccessDeniedException |
+                       AccountExpiredException e) {
+            if (e instanceof AccountExpiredException) {
+                JmixLoginI18n loginI18n = JmixLoginI18n.createDefault();
+                loginI18n.getErrorMessage().setMessage(e.getMessage());
+                login.setI18n(loginI18n);
+            } else {
+                login.setI18n(JmixLoginI18n.createDefault());
+            }
+
             log.warn("Login failed for user '{}': {}", event.getUsername(), e.toString());
             event.getSource().setError(true);
         }
     }
+
 
     @Override
     public void localeChange(final LocaleChangeEvent event) {
